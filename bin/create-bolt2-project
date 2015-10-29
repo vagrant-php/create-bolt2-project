@@ -1,0 +1,189 @@
+#!/bin/bash
+
+## http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in ##
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+##################################################################################################
+
+# defaults
+application=bolt2
+vagrantPhpBranch=14.04
+vagrantPhpRepository=https://github.com/vagrant-php/ubuntu.git
+vagrantProvider=virtualbox
+vagrantSharetype=nfs
+version=2.2.13
+
+# get all parameters
+for i in "$@"
+do
+    case $i in
+        --name=*)
+            name="${i#*=}"
+            shift
+        ;;
+        --vagrantPhpBranch=*)
+            vagrantPhpBranch="${i#*=}"
+            shift
+        ;;
+        --vagrantPhpRepository=*)
+            vagrantPhpRepository="${i#*=}"
+            shift
+        ;;
+        --vagrantProvider=*)
+            vagrantProvider="${i#*=}"
+            shift
+        ;;
+        --vagrantSharetype=*)
+            vagrantSharetype="${i#*=}"
+            shift
+        ;;
+        --version=*)
+            version="${i#*=}"
+            shift
+        ;;
+        -h|--help)
+            echo "usage: create-bolt2-project --name=myproject"
+            echo "usage: create-bolt2-project --name=myproject --vagrantPhpBranch=$vagrantPhpBranch --vagrantPhpRepository=$vagrantPhpRepository --vagrantProvider=$vagrantProvider --vagrantSharetype=$vagrantSharetype --version=$version"
+            exit 0
+        ;;
+    esac
+done
+
+# get version parts
+versionParts=(${version//./ })
+majorVersion=${versionParts[0]}
+minorVersion=${versionParts[0]}.${versionParts[1]}
+
+# check for name
+if [ -z "$name" ]; then
+    echo "please enter a project name: --name=myproject"
+    exit 1
+fi
+
+# check for name signs
+if [[ $name = *[^[:alnum:]]* ]]; then
+    echo "please enter a project name which is alphanumeric"
+    exit 1
+fi
+
+# check if the project directory allready exists
+if [ -d "$name" ]; then
+    echo "please enter a another project name, directory allready exists"
+    exit 1
+fi
+
+# get other variables
+url=https://github.com/bolt/bolt/archive/v$version.zip
+filename=bolt-$version.zip
+foldername=bolt-$version
+
+# check if the repository exists
+git ls-remote --exit-code $vagrantPhpRepository $vagrantPhpBranch > /dev/null
+commandStatus=$?
+if [ "$commandStatus" ==  1 ]; then
+    echo "Repository with url $vagrantPhpRepository not found"
+    exit 1
+elif [ "$commandStatus" ==  2 ]; then
+    echo "Branch $vagrantPhpBranch within repository with url $vagrantPhpRepository not found"
+    exit 1
+fi
+
+# download only if not allready downloaded
+if [ ! -f $DIR/../downloads/$filename ]; then
+
+    # check if the url is callable
+    curl -s --head $url | head -n 1 | grep "HTTP/1.[01] [23].." > /dev/null
+    if [ "$?" ==  1 ]; then
+        echo "can't resolve url $url"
+        exit 1
+    fi
+
+    # download zip
+    curl -L $url -o $DIR/../downloads/$filename
+fi
+
+# extract zip
+unzip $DIR/../downloads/$filename
+
+# check if the folder within zip exists
+if [ ! -d $foldername ]; then
+    echo "there is no folder within zip file with name $foldername"
+    exit 1
+fi
+
+# move extracted dir to a dir with project name
+mv $foldername $name
+
+cd $name
+
+git init
+
+# add vagrant setup as submodule
+git submodule add -b $vagrantPhpBranch $vagrantPhpRepository vagrant-php
+if [ "$?" ==  1 ]; then
+    echo "Cannot get vagrant-php as submodule"
+    exit 1
+fi
+
+# prepare a default vagrant.yml
+printf "hostname: $name.dev\napplication: $application\n" > vagrant.yml
+
+# add vagrantSharetype if defined
+if [[ $vagrantSharetype ]]; then
+    printf "sharetype: $vagrantSharetype\n" >> vagrant.yml
+fi
+
+# create a temp directory
+tempDir=$DIR/../tmp/project-$name
+if [ -d "$tempDir" ]; then
+    rm -rf $tempDir
+fi
+
+mkdir $tempDir
+
+# copy files for this major version
+majorVersionFilePath=$DIR/../files/$majorVersion
+if [ -d "$majorVersionFilePath" ]; then
+    cp -rf $majorVersionFilePath/* $tempDir/
+fi
+
+# copy files for this minor version
+minorVersionFilePath=$DIR/../files/$minorVersion
+if [ -d "$minorVersionFilePath" ]; then
+    cp -rf $minorVersionFilePath/* $tempDir/
+fi
+
+# copy files for this version
+versionFilePath=$DIR/../files/$version
+if [ -d "$versionFilePath" ]; then
+    cp -rf $versionFilePath/* $tempDir/
+fi
+
+# replace variables within config
+sed -i "" -e "s/%%%%name%%%%/$name/g" $tempDir/app/config/config.yml
+
+# copy the prepared config to the project
+cp -rf $tempDir/* .
+
+cd vagrant-php
+
+# setup vagrant
+vagrant up --provider=$vagrantProvider
+
+# create database
+vagrant ssh -c "echo 'CREATE DATABASE $name;' | mysql"
+
+# install sql dump if exists
+if [ -f "../bolt.sql" ]; then
+    vagrant ssh -c "cd /vagrant && mysql $name < bolt.sql"
+fi
+
+# setup symfony
+vagrant ssh -c "cd /vagrant && composer.phar install"
