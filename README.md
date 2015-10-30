@@ -2,6 +2,10 @@
 
 ## installation
 
+### first use (prepare your computer)
+
+Read the installation guide of [vagrant-php][1].
+
 ### clone
 
 ```{.sh}
@@ -36,3 +40,5 @@ create-bolt2-project --help
 ### backend user
 
 admin // jUasz67GastfZUasiHhz87
+
+[1]: https://github.com/vagrant-php/ubuntu#installation
