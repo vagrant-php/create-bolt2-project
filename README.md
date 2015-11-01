@@ -1,4 +1,4 @@
-# create-bolt2-project
+# vagrant-php/create-bolt2-project
 
 ## installation
 
