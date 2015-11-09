@@ -185,5 +185,8 @@ if [ -f "../bolt.sql" ]; then
     vagrant ssh -c "cd /vagrant && mysql $name < bolt.sql"
 fi
 
-# setup symfony
+# setup bolt
 vagrant ssh -c "cd /vagrant && composer.phar install"
+
+# fix permissions
+vagrant ssh -c "cd /vagrant && chmod -R 777 files/ app/database/ app/cache/ app/config/ theme/ extensions/"
