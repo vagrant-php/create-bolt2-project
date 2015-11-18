@@ -57,12 +57,17 @@ return call_user_func(
 
         $runtimeDirConfig = __DIR__ . '/runtime_dir_config.php';
         if (is_file($runtimeDirConfig)) {
-            $cacheDir = require $runtimeDirConfig;
-            if (!is_dir($cacheDir)) {
-                mkdir($cacheDir, 0777, true);
+            $runtimeDir = require $runtimeDirConfig;
+            if (!is_dir($runtimeDir)) {
+                mkdir($runtimeDir, 0777, true);
             }
         } else {
-            $cacheDir = 'app/cache';
+            $runtimeDir = 'app';
+        }
+
+        $cacheDir = $runtimeDir . '/cache';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0777, true);
         }
 
         $config->setPath('cache', $cacheDir);
