@@ -182,7 +182,7 @@ fi
 # replace variables within config
 sed -i "" -e "s/%%%%locale%%%%/$locale/g" $tempDir/app/config/config.yml
 sed -i "" -e "s/%%%%name%%%%/$name/g" $tempDir/app/config/config.yml
-sed -i "" -e "s/%%%%timezone%%%%/$timezone/g" $tempDir/app/config/config.yml
+sed -i "" -e "s|%%%%timezone%%%%|$timezone|g" $tempDir/app/config/config.yml
 
 # copy the prepared config to the project
 cp -rf $tempDir/* .
