@@ -14,6 +14,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 # defaults
 application=bolt2
+locale=de_CH
 vagrantPhpBranch=14.04
 vagrantPhpRepository=https://github.com/vagrant-php/ubuntu.git
 vagrantProvider=virtualbox
@@ -26,6 +27,10 @@ do
     case $i in
         --name=*)
             name="${i#*=}"
+            shift
+        ;;
+        --locale=*)
+            locale="${i#*=}"
             shift
         ;;
         --vagrantPhpBranch=*)
@@ -80,6 +85,9 @@ if [ -d "$name" ]; then
 fi
 
 # get other variables
+nameLength=${#name}
+hostname=$name.dev
+hostnameLength=${#hostname}
 url=https://github.com/bolt/bolt/archive/v$version.zip
 filename=bolt-$version.zip
 foldername=bolt-$version
@@ -133,7 +141,7 @@ if [ "$?" ==  1 ]; then
 fi
 
 # prepare a default vagrant.yml
-printf "hostname: $name.dev\napplication: $application\n" > vagrant.yml
+printf "hostname: $hostname\napplication: $application\n" > vagrant.yml
 
 # add vagrantSharetype if defined
 if [[ $vagrantSharetype ]]; then
@@ -167,6 +175,7 @@ if [ -d "$versionFilePath" ]; then
 fi
 
 # replace variables within config
+sed -i "" -e "s/%%%%locale%%%%/$locale/g" $tempDir/app/config/config.yml
 sed -i "" -e "s/%%%%name%%%%/$name/g" $tempDir/app/config/config.yml
 
 # copy the prepared config to the project
