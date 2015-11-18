@@ -15,6 +15,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 # defaults
 application=bolt2
 locale=de_CH
+timezone=Europe/Zurich
 vagrantPhpBranch=14.04
 vagrantPhpRepository=https://github.com/vagrant-php/ubuntu.git
 vagrantProvider=virtualbox
@@ -31,6 +32,10 @@ do
         ;;
         --locale=*)
             locale="${i#*=}"
+            shift
+        ;;
+        --timezone=*)
+            timezone="${i#*=}"
             shift
         ;;
         --vagrantPhpBranch=*)
@@ -177,6 +182,7 @@ fi
 # replace variables within config
 sed -i "" -e "s/%%%%locale%%%%/$locale/g" $tempDir/app/config/config.yml
 sed -i "" -e "s/%%%%name%%%%/$name/g" $tempDir/app/config/config.yml
+sed -i "" -e "s/%%%%timezone%%%%/$timezone/g" $tempDir/app/config/config.yml
 
 # copy the prepared config to the project
 cp -rf $tempDir/* .

@@ -32,7 +32,7 @@ theme: base-2014
 # This can be done as [nl_NL, Dutch_Netherlands] when specifying multiple
 # locales, ensure the first is a standard locale.
 locale: %%%%locale%%%%
-#timezone: UTC
+timezone: %%%%timezone%%%%
 
 # Set maintenance mode on or off.
 #
