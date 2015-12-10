@@ -9,7 +9,7 @@ database:
     driver: mysql
     username: root
     password: root
-    databasename: %%%%name%%%%
+    databasename: %%%%safename%%%%
 
 # The name of the website
 sitename: A sample site
